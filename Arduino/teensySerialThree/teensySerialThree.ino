@@ -4,14 +4,26 @@
 // Because conditional #includes don't work w/Arduino sketches...
 #include <SPI.h>
 
-// Here's how to control the LEDs from any two pins:
-#define DATAPIN 8
-
 // How many leds in your strip?
-#define NUM_LEDS 90
+#define NUM_LEDS_One 90
+#define NUM_LEDS_Two 400
+#define NUM_LEDS_Three 400
+
+// For led chips like Neopixels, which have a data line, ground, and power, you just
+// need to define DATA_PIN.  For led chipsets that are SPI based (four wires - data, clock,
+// ground, and power), like the LPD8806, define both DATA_PIN and CLOCK_PIN
+
+#define DATA_One_PIN 8
+
+#define DATA_Two_PIN 14
+#define DATA_Three_PIN 7
 
 // Define the array of leds
-CRGB leds[NUM_LEDS];
+CRGB leds_One[NUM_LEDS_One];
+CRGB leds_Two[NUM_LEDS_Two];
+CRGB leds_Three[NUM_LEDS_Three];
+
+const int NUM_LEDS = NUM_LEDS_One + NUM_LEDS_Two;
 
 const int dataChunkSize = 3;
 
@@ -32,7 +44,10 @@ unsigned long previousMillis = 0;
 // ------------------- Setup -------------------- //
 void setup() {
 
-  FastLED.addLeds<NEOPIXEL, DATAPIN>(leds, NUM_LEDS);
+  LEDS.addLeds<WS2812,DATA_One_PIN,RGB>(leds_One, NUM_LEDS_One);
+  
+  LEDS.addLeds<WS2812,DATA_Two_PIN,RGB>(leds_Two,NUM_LEDS_Two);
+  LEDS.addLeds<WS2812,DATA_Three_PIN,RGB>(leds_Three,NUM_LEDS_Three);
 
   FastLED.show();
   
@@ -71,7 +86,18 @@ void loop() {
       led_g = constrain(dim_curve[inputBuffer[(j*dataChunkSize)+1]], 0, maxBright);
       led_b = constrain(dim_curve[inputBuffer[(j*dataChunkSize)+2]], 0, maxBright);
 
-      leds[j].setRGB( led_r, led_g, led_b);
+
+      if(j < NUM_LEDS_One)
+      {
+        leds_One[j].setRGB( led_r, led_g, led_b);
+      }
+      //duplicate signal 
+      else if(j > NUM_LEDS_One)
+      {
+        leds_Two[j - NUM_LEDS_One].setRGB( led_r, led_g, led_b);
+        leds_Three[j - NUM_LEDS_One].setRGB( led_r, led_g, led_b);
+      }
+      
     }
     FastLED.show();
     byteReturnLen = 0; // we're done, lets reset this back to 0 for the next update.
